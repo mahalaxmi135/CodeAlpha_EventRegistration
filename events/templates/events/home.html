@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Registration System</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background: #222;
+            color: white;
+            padding: 25px;
+            text-align: center;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1000px;
+            margin: 30px auto;
+        }
+
+        .event-card {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .event-card h2 {
+            margin-top: 0;
+        }
+
+        button {
+            background: #222;
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            opacity: 0.8;
+        }
+
+        input {
+            display: block;
+            width: 95%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .register-form {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f1f1f1;
+            border-radius: 8px;
+        }
+
+        #message {
+            margin: 20px 0;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>Event Registration System</h1>
+    <p>Browse events and register easily</p>
+</header>
+
+<div class="container">
+
+    <h2>Available Events</h2>
+    <h2>My Registrations</h2>
+
+<div id="registrations-container">
+    Loading registrations...
+</div>
+
+    <div id="events-container">
+        Loading events...
+    </div>
+
+    <p id="message"></p>
+
+</div>
+
+<script>
+
+async function loadEvents() {
+async function loadRegistrations() {
+
+    const container =
+        document.getElementById("registrations-container");
+
+    try {
+
+        const response =
+            await fetch("/events/registrations/");
+
+        const registrations =
+            await response.json();
+
+        if (registrations.length === 0) {
+
+            container.innerHTML =
+                "<p>No registrations yet.</p>";
+
+            return;
+        }
+
+        container.innerHTML = "";
+
+        registrations.forEach(registration => {
+
+            const card =
+                document.createElement("div");
+
+            card.className = "event-card";
+
+            card.innerHTML = `
+                <h3>${registration.event}</h3>
+
+                <p>
+                    <strong>Name:</strong>
+                    ${registration.user_name}
+                </p>
+
+                <p>
+                    <strong>Email:</strong>
+                    ${registration.user_email}
+                </p>
+
+                <p>
+                    <strong>Registration ID:</strong>
+                    ${registration.id}
+                </p>
+
+                <button
+                    onclick="cancelRegistration(${registration.id})">
+                    Cancel Registration
+                </button>
+            `;
+
+            container.appendChild(card);
+        });
+
+    } catch (error) {
+
+        container.innerHTML =
+            "<p>Unable to load registrations.</p>";
+
+        console.error(error);
+    }
+}
+
+    const container = document.getElementById("events-container");
+
+    try {
+
+        const response = await fetch("/events/");
+
+        const events = await response.json();
+
+        if (events.length === 0) {
+            container.innerHTML = "<p>No events available.</p>";
+            return;
+        }
+
+        container.innerHTML = "";
+
+        events.forEach(event => {
+
+            const card = document.createElement("div");
+
+            card.className = "event-card";
+
+            card.innerHTML = `
+                <h2>${event.name}</h2>
+
+                <p>${event.description}</p>
+
+                <p><strong>Date:</strong> ${event.date}</p>
+
+                <p><strong>Location:</strong> ${event.location}</p>
+
+                <p><strong>Capacity:</strong> ${event.capacity}</p>
+
+                <button onclick="showRegistrationForm(${event.id})">
+                    Register
+                </button>
+
+                <div id="form-${event.id}" class="register-form"
+                     style="display:none;">
+
+                    <h3>Register for ${event.name}</h3>
+
+                    <input
+                        type="text"
+                        id="name-${event.id}"
+                        placeholder="Enter your name"
+                    >
+
+                    <input
+                        type="email"
+                        id="email-${event.id}"
+                        placeholder="Enter your email"
+                    >
+
+                    <button onclick="register(${event.id})">
+                        Submit Registration
+                    </button>
+
+                </div>
+            `;
+
+            container.appendChild(card);
+        });
+
+    } catch (error) {
+
+        container.innerHTML =
+            "<p>Unable to load events.</p>";
+
+        console.error(error);
+    }
+}
+
+
+function showRegistrationForm(eventId) {
+
+    const form = document.getElementById(`form-${eventId}`);
+
+    if (form.style.display === "none") {
+        form.style.display = "block";
+    } else {
+        form.style.display = "none";
+    }
+}
+
+
+async function register(eventId) {
+
+    const name =
+        document.getElementById(`name-${eventId}`).value;
+
+    const email =
+        document.getElementById(`email-${eventId}`).value;
+
+    if (!name || !email) {
+
+        document.getElementById("message").innerText =
+            "Please enter your name and email.";
+
+        return;
+    }
+
+    const formData = new URLSearchParams();
+
+    formData.append("user_name", name);
+    formData.append("user_email", email);
+
+    try {
+
+        const response = await fetch(
+            `/events/${eventId}/register/`,
+            {
+                method: "POST",
+                body: formData
+            }
+        );
+
+        const data = await response.json();
+
+        if (response.ok) {
+
+    document.getElementById("message").innerText =
+        "Registration successful! Your Registration ID is " +
+        data.registration_id;
+
+    document.getElementById(`name-${eventId}`).value = "";
+    document.getElementById(`email-${eventId}`).value = "";
+
+} else {
+
+            document.getElementById("message").innerText =
+                data.error || "Registration failed.";
+        }
+
+    } catch (error) {
+
+        document.getElementById("message").innerText =
+            "Something went wrong.";
+
+        console.error(error);
+    }
+}
+
+
+loadEvents();
+async function loadRegistrations() {
+
+    const container =
+        document.getElementById("registrations-container");
+
+    try {
+
+        const response =
+            await fetch("/events/registrations/");
+
+        const registrations =
+            await response.json();
+
+        if (registrations.length === 0) {
+
+            container.innerHTML =
+                "<p>No registrations yet.</p>";
+
+            return;
+        }
+
+        container.innerHTML = "";
+
+        registrations.forEach(registration => {
+
+            const card =
+                document.createElement("div");
+
+            card.className = "event-card";
+
+            card.innerHTML = `
+                <h3>${registration.event}</h3>
+
+                <p>
+                    <strong>Name:</strong>
+                    ${registration.user_name}
+                </p>
+
+                <p>
+                    <strong>Email:</strong>
+                    ${registration.user_email}
+                </p>
+
+                <p>
+                    <strong>Registration ID:</strong>
+                    ${registration.id}
+                </p>
+
+                <button
+                    onclick="cancelRegistration(${registration.id})">
+                    Cancel Registration
+                </button>
+            `;
+
+            container.appendChild(card);
+        });
+
+    } catch (error) {
+
+        container.innerHTML =
+            "<p>Unable to load registrations.</p>";
+
+        console.error(error);
+    }
+}
+async function cancelRegistration(registrationId) {
+
+    try {
+
+        const response = await fetch(
+            `/events/registrations/${registrationId}/`,
+            {
+                method: "DELETE"
+            }
+        );
+
+        const data = await response.json();
+
+        if (response.ok) {
+
+            document.getElementById("message").innerText =
+                data.message;
+
+            loadRegistrations();
+
+        } else {
+
+            document.getElementById("message").innerText =
+                data.error || "Cancellation failed.";
+        }
+
+    } catch (error) {
+
+        document.getElementById("message").innerText =
+            "Something went wrong.";
+
+        console.error(error);
+    }
+}
+loadRegistrations();
+
+</script>
+
+</body>
+</html>
